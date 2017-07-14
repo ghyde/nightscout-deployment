@@ -1,0 +1,31 @@
+version: '3.3'
+services:
+  broker:
+    image: "prologic/mosquitto:${MOSQUITTO_TAG}"
+    ports:
+      - "${MOSQUITTO_PORT}:1883"
+    # volumes:
+    #   - ./vol/broker/data:/mosquitto/data
+    #   - ./vol/broker/log:/mosquitto/log
+  db:
+    image: "mongo:${MONGODB_TAG}"
+    environment:
+      - "MONGO_INITDB_DATABASE=${NIGHTSCOUT_DATABASE}"
+      - "MONGO_INITDB_ROOT_USERNAME=${NIGHTSCOUT_DATABASE_ROOT_USERNAME}"
+      - "MONGO_INITDB_ROOT_PASSWORD=${NIGHTSCOUT_DATABASE_ROOT_PASSWORD}"
+    volumes:
+      - ./vol/db/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    ports:
+      - "${MONGODB_PORT}:27017"
+  nightscout:
+    image: "nightscout/cgm-remote-monitor-development:${NIGHTSCOUT_TAG}"
+    environment:
+      - "API_SECRET=${NIGHTSCOUT_API_SECRET}"
+      - "MONGO_CONNECTION=mongodb://${NIGHTSCOUT_DATABASE_ROOT_USERNAME}:${NIGHTSCOUT_DATABASE_ROOT_PASSWORD}@db:27017/${NIGHTSCOUT_DATABASE}"
+      - "MQTT_MONITOR=mqtt://{{** CHANGE ME **}}@broker"
+      - PORT=1337
+    links:
+      - broker
+      - db
+    ports:
+      - "${NIGHTSCOUT_PORT}:1337"
